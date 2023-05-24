@@ -62,12 +62,13 @@ VTS_API void vtsCameraSetOptions(vtsHCamera cam, const char *options);
 // acquire group base for the draw tasks
 VTS_API void vtsDrawsOpaqueGroup(vtsHCamera cam, void **group, uint32 *count);
 VTS_API void vtsDrawsTransparentGroup(vtsHCamera cam, void **group, uint32 *count);
-//VTS_API void vtsDrawsGeodataGroup(vtsHCamera cam, void **group, uint32 *count);
+VTS_API void vtsDrawsGeodataGroup(vtsHCamera cam, void **group, uint32 *count);
 VTS_API void vtsDrawsCollidersGroup(vtsHCamera cam, void **group, uint32 *count);
 
 // acquire individual draw tasks data
 VTS_API void vtsDrawsSurfaceTask(void *group, uint32 index, void **mesh, void **texColor, void **texMask, vtsCDrawSurfaceBase **baseStruct);
 VTS_API void vtsDrawsColliderTask(void *group, uint32 index, void **mesh, vtsCDrawColliderBase **baseStruct);
+VTS_API void vtsDrawsGeodataTask(void *group, uint32 index, void **geodata, vtsCDrawGeodataBase **baseStruct);
 
 VTS_API const vtsCCameraBase *vtsDrawsCamera(vtsHCamera cam);
 

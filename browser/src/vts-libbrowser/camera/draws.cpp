@@ -41,7 +41,10 @@ DrawSurfaceTask::DrawSurfaceTask()
 }
 
 DrawGeodataTask::DrawGeodataTask()
-{}
+{
+    memset((vtsCDrawGeodataBase*)this, 0, sizeof(vtsCDrawGeodataBase));
+    geodata = nullptr;
+}
 
 DrawInfographicsTask::DrawInfographicsTask()
 {

@@ -59,6 +59,15 @@ VTS_API void vtsMeshGetVertices(vtsHResource resource, void **data, uint32 *size
 VTS_API void vtsMeshGetIndices(vtsHResource resource, void **data, uint32 *size, uint32 *count);
 VTS_API void vtsMeshGetAttribute(vtsHResource resource, uint32 index, uint32 *offset, uint32 *stride, uint32 *components, uint32 *type, bool *enable, bool *normalized);
 
+// geodata
+VTS_API uint32 vtsGeodataGetType(vtsHResource resource);
+VTS_API void vtsGeodataGetTexts(vtsHResource resource, void **data, uint32 *size);
+VTS_API void vtsGeodataGetPositions(vtsHResource resource, void **data, uint32 *size, void **sizes);
+VTS_API void vtsGeodataGetModel(vtsHResource resource, void **data);
+
+VTS_API void vtsGeodataGetBitmap(vtsHResource resource, void **data);
+VTS_API void vtsGeodataGetProperties(vtsHResource resource, void **data, uint32 *size);
+
 #ifdef __cplusplus
 } // extern C
 #endif

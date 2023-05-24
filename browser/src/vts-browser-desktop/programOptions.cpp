@@ -154,7 +154,9 @@ bool programOptions(vts::MapCreateOptions &createOptions,
     if (configs.empty())
     {
         MapPaths p;
-        p.mapConfig = "https://cdn.melown.com/mario/store/melown2015/map-config/melown/Melown-Earth-Intergeo-2017/mapConfig.json";
+        //p.mapConfig = "https://cdn.melown.com/mario/store/melown2015/map-config/melown/Melown-Earth-Intergeo-2017/mapConfig.json";
+        //p.mapConfig = "http://localhost:8070/mapproxy/pluto-qsc/surface/63e3f9f031cb7f2f82d0/dem/mapConfig.json";
+        p.mapConfig = "http://mapproxy.infiniteworlds/mapproxy/pluto-qsc/surface/63f3c32d5c62e4502e23/dem/mapConfig.json";
         appOptions.paths.push_back(p);
     }
     else

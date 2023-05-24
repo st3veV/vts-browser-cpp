@@ -563,6 +563,7 @@ struct geoContext
                 c(spec.texts.size());
                 c(spec.hysteresisIds.size());
                 c(spec.importances.size());
+                c(spec.properties.size());
             }
 
             // validate positions
@@ -1831,6 +1832,12 @@ if (fnc == #NAME) \
         cullOutsideFeatures(arr);
         data.positions.reserve(data.positions.size() + arr.size());
         data.positions.insert(data.positions.end(), arr.begin(), arr.end());
+
+        if(arr.size() > 0){
+            auto props = getFeatureProperties();
+            data.properties.reserve(data.properties.size() + 1);
+            data.properties.insert(data.properties.end(), props);
+        }
     }
 
     void processFeatureLine(const Value &layer, GpuGeodataSpec spec)
@@ -2132,6 +2139,20 @@ if (fnc == #NAME) \
     boost::optional<Group> group;
     boost::optional<Type> type;
     boost::optional<const Value &> feature;
+
+    std::map<std::string, std::string> getFeatureProperties() const
+    {
+        std::map<std::string, std::string> result;
+        auto mapObject = (*feature)["properties"];
+        
+        const auto& propertyNames = mapObject.getMemberNames();
+        for (const auto& propertyName : propertyNames)
+        {
+            result.insert(std::make_pair(propertyName, mapObject[propertyName].asString()));
+        }
+
+        return result;
+    }
 
     std::vector<std::vector<Point>> getFeaturePositions() const
     {

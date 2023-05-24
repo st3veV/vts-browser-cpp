@@ -69,6 +69,12 @@ typedef struct vtsCCameraBase
     double altitudeOverSurface; // altitude of the eye over surface
 } vtsCCameraBase;
 
+typedef struct vtsCDrawGeodataBase
+{
+    float mv[16];
+    //int type; //
+} vtsCDrawGeodataBase;
+
 #ifdef __cplusplus
 } // extern C
 #endif

@@ -37,6 +37,7 @@
 #include "../include/vts-browser/exceptions.hpp"
 #include "../include/vts-browser/fetcher.h"
 #include "../include/vts-browser/fetcher.hpp"
+#include "../include/vts-browser/geodata.hpp"
 #include "../include/vts-browser/log.h"
 #include "../include/vts-browser/log.hpp"
 #include "../include/vts-browser/map.h"
@@ -158,6 +159,8 @@ typedef struct vtsCResource
     {
         vts::GpuMeshSpec *m;
         vts::GpuTextureSpec *t;
+        vts::GpuGeodataSpec *g;
+        vts::GpuFontSpec *f;
         Ptr() : m(nullptr) {}
     } ptr;
     vtsCResource(const std::string &id) : id(id), r(nullptr) {}
@@ -631,7 +634,6 @@ void vtsDrawsTransparentGroup(vtsHCamera cam, void **group, uint32 *count)
     C_END
 }
 
-/*
 void vtsDrawsGeodataGroup(vtsHCamera cam, void **group, uint32 *count)
 {
     C_BEGIN
@@ -639,7 +641,6 @@ void vtsDrawsGeodataGroup(vtsHCamera cam, void **group, uint32 *count)
     *count = cam->p->draws().geodata.size();
     C_END
 }
-*/
 
 void vtsDrawsCollidersGroup(vtsHCamera cam, void **group, uint32 *count)
 {
@@ -666,6 +667,15 @@ void vtsDrawsColliderTask(void *group, uint32 index, void **mesh, vtsCDrawCollid
     vts::DrawColliderTask *t = (vts::DrawColliderTask *)group + index;
     *mesh = t->mesh.get();
     *baseStruct = (vtsCDrawColliderBase*)t;
+    C_END
+}
+
+void vtsDrawsGeodataTask(void *group, uint32 index, void **geodata, vtsCDrawGeodataBase **baseStruct)
+{
+    C_BEGIN
+    vts::DrawGeodataTask *t = (vts::DrawGeodataTask *)group + index;
+    *geodata = t->geodata.get();
+    *baseStruct = (vtsCDrawGeodataBase*)t;
     C_END
 }
 
@@ -1048,6 +1058,132 @@ void vtsMeshGetAttribute(vtsHResource resource, uint32 index, uint32 *offset, ui
     C_END
 }
 
+uint32 vtsGeodataGetType(vtsHResource resource)
+{
+    C_BEGIN
+    return (uint32)resource->ptr.g->type;
+    C_END
+    return 0;
+}
+
+/*
+*/
+
+void vtsGeodataGetTexts(vtsHResource resource, void **data, uint32 *size)
+{
+    C_BEGIN
+    std::vector<std::string> origVector = resource->ptr.g->texts;
+    std::vector<const char *> convertedVector;
+    
+    std::transform(origVector.begin(), origVector.end(),
+                   std::back_inserter(convertedVector),
+                    [](const std::string& str) {
+                       char* copy = new char[str.length() + 1];
+                       std::strcpy(copy, str.c_str());
+                       return copy;
+                   }
+    );
+
+    *data = convertedVector.data();
+    *size = convertedVector.size();
+    C_END
+}
+
+void vtsGeodataGetPositions(vtsHResource resource, void **data, uint32 *size, void **sizes)
+{
+    C_BEGIN
+    std::vector<std::vector<std::array<float, 3>>> origVector = resource->ptr.g->positions;
+
+    std::vector<std::array<float, 3>> flatVector;
+    std::vector<uint32_t> vectorSizes;
+    for (const auto& subVector : origVector) {
+        vectorSizes.push_back(subVector.size());
+        flatVector.insert(flatVector.end(), subVector.begin(), subVector.end());
+    }
+
+    void* block = malloc(flatVector.size() * sizeof(std::array<float, 3>));
+    std::memcpy(block, flatVector.data(), flatVector.size() * sizeof(std::array<float, 3>));
+
+    *data = block;
+    *size = vectorSizes.size();
+    void* sizeBlock = (uint32_t*)malloc(vectorSizes.size() * sizeof(uint32_t));
+    std::memcpy(sizeBlock, vectorSizes.data(), vectorSizes.size() * sizeof(uint32_t));
+
+    *sizes = sizeBlock;
+    C_END
+}
+
+void vtsGeodataGetModel(vtsHResource resource, void **data)
+{
+    C_BEGIN
+    *data = resource->ptr.g->model;
+    C_END
+}
+
+void vtsGeodataGetBitmap(vtsHResource resource, void **data)
+{
+    C_BEGIN
+    // *data = resource->ptr.g->bitmap;
+    C_END
+}
+
+void vtsGeodataGetProperties(vtsHResource resource, void **data, uint32 *size)
+{
+    C_BEGIN
+    const std::vector<std::map<std::string, std::string>>& origVector = resource->ptr.g->properties;
+    std::vector<const char*> serializedData;
+    
+    // Calculate total size
+    uint32 totalSize = sizeof(uint32); // size of dictCount
+
+    for (const auto &dict : origVector) {
+        totalSize += sizeof(uint32); // size of dictSize
+        for (const auto &pair : dict) {
+            totalSize += sizeof(uint32) * 2; // size of keySize and valueSize
+            totalSize += pair.first.size();  // key length
+            totalSize += pair.second.size(); // value length
+        }
+    }
+
+    // Allocate memory for the serialized data
+    uint8 *serialized = static_cast<uint8 *>(malloc(totalSize));
+    uint32 currentPosition = 0;
+
+    // Serialize the data
+    uint32 dictCount = static_cast<uint32>(origVector.size());
+    memcpy(serialized + currentPosition, &dictCount, sizeof(uint32));
+    currentPosition += sizeof(uint32);
+
+    for (const auto &dict : origVector) {
+        uint32 dictSize = static_cast<uint32>(dict.size());
+        memcpy(serialized + currentPosition, &dictSize, sizeof(uint32));
+        currentPosition += sizeof(uint32);
+
+        for (const auto &pair : dict) {
+            uint32 keySize = static_cast<uint32>(pair.first.size());
+            memcpy(serialized + currentPosition, &keySize, sizeof(uint32));
+            currentPosition += sizeof(uint32);
+
+            uint32 valueSize = static_cast<uint32>(pair.second.size());
+            memcpy(serialized + currentPosition, &valueSize, sizeof(uint32));
+            currentPosition += sizeof(uint32);
+
+            memcpy(serialized + currentPosition, pair.first.c_str(), keySize);
+            currentPosition += keySize;
+
+            memcpy(serialized + currentPosition, pair.second.c_str(), valueSize);
+            currentPosition += valueSize;
+        }
+    }
+
+    // Set output pointers
+    *data = serialized;
+    *size = totalSize;
+
+
+    C_END
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CALLBACKS
 ////////////////////////////////////////////////////////////////////////////
@@ -1108,6 +1244,50 @@ void vtsCallbacksLoadMesh(vtsHMap map, vtsResourceCallbackType callback)
     c.map = map;
     c.callback = callback;
     map->p->callbacks().loadMesh = c;
+    C_END
+}
+
+void vtsCallbacksLoadGeodata(vtsHMap map, vtsResourceCallbackType callback)
+{
+    struct Callback
+    {
+        void operator()(vts::ResourceInfo &r, vts::GpuGeodataSpec &g, const std::string &id)
+        {
+            vtsCResource rc(id);
+            rc.r = &r;
+            rc.ptr.g = &g;
+            (*callback)(map, &rc);
+        }
+        vtsHMap map;
+        vtsResourceCallbackType callback;
+    };
+    C_BEGIN
+    Callback c;
+    c.map = map;
+    c.callback = callback;
+    map->p->callbacks().loadGeodata = c;
+    C_END
+}
+
+void vtsCallbacksLoadFont(vtsHMap map, vtsResourceCallbackType callback)
+{
+    struct Callback
+    {
+        void operator()(vts::ResourceInfo &r, vts::GpuFontSpec &f, const std::string &id)
+        {
+            vtsCResource rc(id);
+            rc.r = &r;
+            rc.ptr.f = &f;
+            (*callback)(map, &rc);
+        }
+        vtsHMap map;
+        vtsResourceCallbackType callback;
+    };
+    C_BEGIN
+    Callback c;
+    c.map = map;
+    c.callback = callback;
+    map->p->callbacks().loadFont = c;
     C_END
 }
 

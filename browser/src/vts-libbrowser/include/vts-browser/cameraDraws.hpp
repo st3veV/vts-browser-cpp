@@ -44,7 +44,7 @@ public:
     DrawSurfaceTask();
 };
 
-class VTS_API DrawGeodataTask
+class VTS_API DrawGeodataTask : public vtsCDrawGeodataBase
 {
 public:
     std::shared_ptr<void> geodata;

@@ -31,6 +31,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <map>
 
 #include "foundation.hpp"
 
@@ -191,6 +192,9 @@ public:
     std::vector<std::string> texts;
     std::vector<std::string> hysteresisIds;
     std::vector<float> importances;
+
+    // raw properties item
+    std::vector<std::map<std::string, std::string>> properties;
 
     // global properties
     std::vector<std::shared_ptr<void>> fontCascade;
