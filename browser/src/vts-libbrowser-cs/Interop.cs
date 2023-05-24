@@ -57,6 +57,12 @@ public static extern void vtsCallbacksLoadTexture(IntPtr map, vtsResourceCallbac
 public static extern void vtsCallbacksLoadMesh(IntPtr map, vtsResourceCallbackType callback);
 
 [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsCallbacksLoadGeodata(IntPtr map, vtsResourceCallbackType callback);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsCallbacksLoadFont(IntPtr map, vtsResourceCallbackType callback);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
 public static extern void vtsCallbacksMapconfigAvailable(IntPtr map, vtsMapCallbackType callback);
 
 [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
@@ -130,6 +136,12 @@ public static extern void vtsDrawsTransparentGroup(IntPtr cam, ref IntPtr group,
 
 [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
 public static extern void vtsDrawsCollidersGroup(IntPtr cam, ref IntPtr group, ref uint count);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsDrawsGeodataGroup(IntPtr cam, ref IntPtr group, ref uint count);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsDrawsGeodataTask(IntPtr group, uint index, ref IntPtr geodata, ref IntPtr baseStruct);
 
 [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
 public static extern void vtsDrawsSurfaceTask(IntPtr group, uint index, ref IntPtr mesh, ref IntPtr texColor, ref IntPtr texMask, ref IntPtr baseStruct);
@@ -444,6 +456,21 @@ public static extern IntPtr vtsSearchGetResultData(IntPtr search, uint index);
 
 [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
 public static extern void vtsSearchUpdateDistances(IntPtr search, [In] double[] point);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern uint vtsGeodataGetType(IntPtr handle);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsGeodataGetTexts(IntPtr handle, ref IntPtr data, ref uint size);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsGeodataGetPositions(IntPtr handle, ref IntPtr data, ref uint size, ref IntPtr sizes);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsGeodataGetModel(IntPtr handle, ref IntPtr data);
+
+[DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+public static extern void vtsGeodataGetProperties(IntPtr handle, ref IntPtr data, ref uint size);
 
 	}
 }

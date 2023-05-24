@@ -27,6 +27,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text;
+using UnityEngine;
 
 namespace vts
 {
@@ -162,4 +164,202 @@ namespace vts
             }
         }
     }
+
+    public enum GeodataType
+    {
+        Invalid = 0,
+        Triangles = 1,
+        LineFlat = 2,
+        PointFlat = 3,
+        IconFlat = 4,
+        LabelFlat = 5,
+        LineScreen = 6,
+        PointScreen = 7,
+        IconScreen = 8,
+        LabelScreen = 9,
+    }
+
+    public class Point3D
+    {
+        public double x;
+        public double y;
+        public double z;
+
+        public Point3D(double x, double y, double z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public Vector3 ToVector3()
+        {
+            return new Vector3((float)x, (float)y, (float)z);
+        }
+        public double[] ToArray3()
+        {
+            return new double[] { x, y, z };
+        }
+        public double[] ToArray4()
+        {
+            return new double[] { x, y, z, 1 };
+        }
+    }
+
+    public class Geodata
+    {
+
+        public string id;
+        public GeodataType type;
+        public string[] texts;
+        public Point3D[][] positions;
+        public double[] model;
+        public Dictionary<string, string>[] properties;
+
+        public void Load(IntPtr handle)
+        {
+            id = Util.CheckString(BrowserInterop.vtsResourceGetId(handle));
+
+            type = (GeodataType)BrowserInterop.vtsGeodataGetType(handle);
+            Util.CheckInterop();
+            LoadModel(handle);
+            LoadTexts(handle);
+            LoadPositions(handle);
+            LoadProperties(handle);
+        }
+
+        private void LoadModel(IntPtr handle)
+        {
+            model = new double[16];
+            IntPtr bufPtr = IntPtr.Zero;
+            BrowserInterop.vtsGeodataGetModel(handle, ref bufPtr);
+            Util.CheckInterop();
+            Marshal.Copy(bufPtr, model, 0, 16);
+        }
+
+        private void LoadPositions(IntPtr handle)
+        {
+            IntPtr bufPtr = IntPtr.Zero;
+            IntPtr sizesBufPtr = IntPtr.Zero;
+            uint bufSize = 0;
+            BrowserInterop.vtsGeodataGetPositions(handle, ref bufPtr, ref bufSize, ref sizesBufPtr);
+            Util.CheckInterop();
+
+            if (bufSize == 0)
+            {
+                positions = new Point3D[0][];
+                return;
+            }
+
+            int[] sizes = new int[bufSize];
+            Marshal.Copy(sizesBufPtr, sizes, 0, (int)bufSize);
+
+            positions = new Point3D[bufSize][];
+
+            for (int i = 0; i < bufSize; i++)
+            {
+                uint size = (uint)sizes[i];
+                List<Point3D> subVector = new((int)size);
+                int numPoints = 3;
+                for (int j = 0; j < size; j++)
+                {
+                    float[] points = new float[numPoints];
+                    Marshal.Copy(bufPtr + j * numPoints, points, 0, numPoints);
+                    Point3D vec = new(points[0], points[1], points[2]);
+                    subVector.Add(vec);
+                }
+                positions[i] = subVector.ToArray();
+                bufPtr += (int)size * numPoints;
+            }
+        }
+
+        private void LoadTexts(IntPtr handle)
+        {
+            IntPtr bufPtr = IntPtr.Zero;
+            uint bufSize = 0;
+            BrowserInterop.vtsGeodataGetTexts(handle, ref bufPtr, ref bufSize);
+            Util.CheckInterop();
+
+            if (bufSize == 0)
+            {
+                texts = new string[0];
+                return;
+            }
+
+            string[] stringArray = new string[bufSize];
+            IntPtr[] stringPointers = new IntPtr[bufSize];
+            Marshal.Copy(bufPtr, stringPointers, 0, (int)bufSize);
+            for (int i = 0; i < bufSize; i++)
+            {
+                if (stringPointers[i] == IntPtr.Zero)
+                {
+                    stringArray[i] = "";
+                    continue;
+                }
+                stringArray[i] = Marshal.PtrToStringAnsi(stringPointers[i]);
+            }
+
+            texts = stringArray;
+        }
+
+        private void LoadProperties(IntPtr handle)
+        {
+            IntPtr bufPtr = IntPtr.Zero;
+            uint bufSize = 0;
+            BrowserInterop.vtsGeodataGetProperties(handle, ref bufPtr, ref bufSize);
+            Util.CheckInterop();
+
+            if (bufSize == 0)
+            {
+                return;
+            }
+
+            // Deserialize the properties
+            List<Dictionary<string, string>> properties = new();
+            byte[] data = new byte[bufSize];
+            Marshal.Copy(bufPtr, data, 0, (int)bufSize);
+
+            int dictCount = BitConverter.ToInt32(data, 0);
+            int position = sizeof(int);
+
+            for (int i = 0; i < dictCount; i++)
+            {
+                int dictSize = BitConverter.ToInt32(data, position);
+                position += sizeof(int);
+
+                var map = new Dictionary<string, string>();
+
+                for (int j = 0; j < dictSize; j++)
+                {
+                    int keySize = BitConverter.ToInt32(data, position);
+                    position += sizeof(int);
+                    int valueSize = BitConverter.ToInt32(data, position);
+                    position += sizeof(int);
+
+                    string key = Encoding.ASCII.GetString(data, position, keySize);
+                    position += keySize;
+
+                    string value = Encoding.ASCII.GetString(data, position, valueSize);
+                    position += valueSize;
+
+                    map[key] = value;
+                }
+
+                properties.Add(map);
+            }
+
+            this.properties = properties.ToArray();
+        }
+    }
+
+    public class Font
+    {
+        public string id;
+
+        public void Load(IntPtr handle)
+        {
+            id = Util.CheckString(BrowserInterop.vtsResourceGetId(handle));
+        }
+    }
+
 }

@@ -42,6 +42,8 @@ namespace vts
             MapconfigReadyDelegate = new BrowserInterop.vtsMapCallbackType(MapconfigReadyCallback);
             LoadTextureDelegate = new BrowserInterop.vtsResourceCallbackType(LoadTextureCallback);
             LoadMeshDelegate = new BrowserInterop.vtsResourceCallbackType(LoadMeshCallback);
+            LoadGeodataDelegate = new BrowserInterop.vtsResourceCallbackType(LoadGeodataCallback);
+            LoadFontDelegate = new BrowserInterop.vtsResourceCallbackType(LoadFontCallback);
             UnloadResourceDelegate = new BrowserInterop.vtsResourceDeleterCallbackType(UnloadResourceCallback);
         }
 
@@ -54,6 +56,10 @@ namespace vts
             BrowserInterop.vtsCallbacksLoadTexture(Handle, LoadTextureDelegate);
             Util.CheckInterop();
             BrowserInterop.vtsCallbacksLoadMesh(Handle, LoadMeshDelegate);
+            Util.CheckInterop();
+            BrowserInterop.vtsCallbacksLoadGeodata(Handle, LoadGeodataDelegate);
+            Util.CheckInterop();
+            BrowserInterop.vtsCallbacksLoadFont(Handle, LoadFontDelegate);
             Util.CheckInterop();
         }
 
@@ -117,6 +123,44 @@ namespace vts
             }
         }
 
+        private BrowserInterop.vtsResourceCallbackType LoadGeodataDelegate;
+#if ENABLE_IL2CPP
+        [MonoPInvokeCallback(typeof(BrowserInterop.vtsResourceCallbackType))] static
+#endif
+        private void LoadGeodataCallback(IntPtr h, IntPtr r)
+        {
+            Map m = GetMap(h);
+            if (m.EventLoadGeodata != null)
+            {
+                Geodata gd = new Geodata();
+                gd.Load(r);
+                BrowserInterop.vtsResourceSetMemoryCost(r, 0, (uint)(gd.texts == null ? 0 : gd.texts.Length));
+                Util.CheckInterop();
+                GCHandle hnd = GCHandle.Alloc(m.EventLoadGeodata.Invoke(gd));
+                BrowserInterop.vtsResourceSetUserData(r, GCHandle.ToIntPtr(hnd), m.UnloadResourceDelegate);
+                Util.CheckInterop();
+            }
+        }
+
+        private BrowserInterop.vtsResourceCallbackType LoadFontDelegate;
+#if ENABLE_IL2CPP
+        [MonoPInvokeCallback(typeof(BrowserInterop.vtsResourceCallbackType))] static
+#endif
+        private void LoadFontCallback(IntPtr h, IntPtr r)
+        {
+            Map m = GetMap(h);
+            if (m.EventLoadFont != null)
+            {
+                Font gd = new Font();
+                gd.Load(r);
+                //BrowserInterop.vtsResourceSetMemoryCost(r, 0, (uint)(gd.vertices == null ? 0 : gd.vertices.Length) + (uint)(gd.indices == null ? 0 : gd.indices.Length) * 2);
+                //Util.CheckInterop();
+                GCHandle hnd = GCHandle.Alloc(m.EventLoadFont.Invoke(gd));
+                BrowserInterop.vtsResourceSetUserData(r, GCHandle.ToIntPtr(hnd), m.UnloadResourceDelegate);
+                Util.CheckInterop();
+            }
+        }
+
         private BrowserInterop.vtsResourceDeleterCallbackType UnloadResourceDelegate;
 #if ENABLE_IL2CPP
         [MonoPInvokeCallback(typeof(BrowserInterop.vtsResourceDeleterCallbackType))] static
@@ -134,11 +178,16 @@ namespace vts
         public delegate void MapEmptyHandler();
         public delegate Object LoadTextureHandler(Texture texture);
         public delegate Object LoadMeshHandler(Mesh mesh);
+        public delegate Object LoadGeodataHandler(Geodata geodata);
+        public delegate Object LoadFontHandler(Font font);
 
         public event MapEmptyHandler EventMapconfigAvailable;
         public event MapEmptyHandler EventMapconfigReady;
 
         public event LoadTextureHandler EventLoadTexture;
         public event LoadMeshHandler EventLoadMesh;
+        public event LoadGeodataHandler EventLoadGeodata;
+
+        public event LoadFontHandler EventLoadFont;
     }
 }

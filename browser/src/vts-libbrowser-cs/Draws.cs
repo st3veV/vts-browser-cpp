@@ -60,6 +60,14 @@ namespace vts
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] public float[] mv;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DrawGeodataBase
+    {
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] public float[] mv;
+    }
+
+
+
     public struct DrawSurfaceTask
     {
         public DrawSurfaceBase data;
@@ -72,6 +80,12 @@ namespace vts
     {
         public DrawColliderBase data;
         public Object mesh;
+    }
+
+    public struct DrawGeodataTask
+    {
+        public DrawGeodataBase data;
+        public Object geodata;
     }
 
     public struct Atmosphere
@@ -142,6 +156,7 @@ namespace vts
         public List<DrawSurfaceTask> opaque;
         public List<DrawSurfaceTask> transparent;
         public List<DrawColliderTask> colliders;
+        public List<DrawGeodataTask> geodata;
 
         private Object Load(IntPtr ptr)
         {
@@ -195,6 +210,28 @@ namespace vts
             }
         }
 
+        private void LoadGeodata(ref List<DrawGeodataTask> tasks, IntPtr group, uint cnt)
+        {
+            Util.CheckInterop();
+            if (tasks == null)
+                tasks = new List<DrawGeodataTask>((int)cnt);
+            else
+                tasks.Clear();
+            for (uint i = 0; i < cnt; i++)
+            {
+                DrawGeodataTask t;
+                IntPtr pbs = IntPtr.Zero, pm = IntPtr.Zero;
+                BrowserInterop.vtsDrawsGeodataTask(group, i, ref pm, ref pbs);
+                Util.CheckInterop();
+                if (pm == IntPtr.Zero)
+                    continue;
+                t.data = (DrawGeodataBase)Marshal.PtrToStructure(pbs, typeof(DrawGeodataBase));
+                //t.data = new DrawGeodataBase();
+                t.geodata = Load(pm);
+                tasks.Add(t);
+            }
+        }
+
         public void Load(Map map, Camera cam)
         {
             IntPtr camPtr = BrowserInterop.vtsDrawsCamera(cam.Handle);
@@ -209,6 +246,8 @@ namespace vts
             LoadSurfaces(ref transparent, group, cnt);
             BrowserInterop.vtsDrawsCollidersGroup(cam.Handle, ref group, ref cnt);
             LoadColliders(ref colliders, group, cnt);
+            BrowserInterop.vtsDrawsGeodataGroup(cam.Handle, ref group, ref cnt);
+            LoadGeodata(ref geodata, group, cnt);
         }
     }
 }
